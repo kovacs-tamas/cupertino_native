@@ -3,6 +3,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/gestures.dart';
+import 'package:flutter/scheduler.dart';
 import '../channel/params.dart';
 
 /// Controller for a [CNSwitch] that allows imperative updates from Dart
@@ -82,6 +83,7 @@ class _CNSwitchState extends State<CNSwitch> {
   bool? _lastEnabled;
   bool? _lastIsDark;
   int? _lastTint;
+  int _pendingToggleId = 0;
   bool get _isDark => CupertinoTheme.of(context).brightness == Brightness.dark;
 
   CNSwitchController? _internalController;
@@ -197,8 +199,24 @@ class _CNSwitchState extends State<CNSwitch> {
       final args = call.arguments as Map?;
       final value = args?['value'] as bool?;
       if (value != null) {
+        final int toggleId = ++_pendingToggleId;
         widget.onChanged(value);
-        _lastValue = value;
+        // Ensure we get a frame even if setState is not called.
+        SchedulerBinding.instance.scheduleFrame();
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted) return;
+          if (_pendingToggleId != toggleId) return;
+          final channel = _channel;
+          if (channel == null) return;
+          if (widget.value != value) {
+            channel.invokeMethod('setValue', {
+              'value': widget.value,
+              'animated': true,
+            });
+          } else {
+            _lastValue = widget.value;
+          }
+        });
       }
     }
     return null;

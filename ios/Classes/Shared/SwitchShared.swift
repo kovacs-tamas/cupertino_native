@@ -8,7 +8,7 @@ struct CupertinoSwitchView: View {
       .labelsHidden()
       .disabled(!model.enabled)
       .onChange(of: model.value) { newValue in
-        model.onChange(newValue)
+        model.handleChange(newValue)
       }
 
     if #available(iOS 15.0, *) {
@@ -24,10 +24,24 @@ class SwitchModel: ObservableObject {
   @Published var enabled: Bool
   @Published var tintColor: Color = .accentColor
   var onChange: (Bool) -> Void
+  private var suppressChangeCallback = false
 
   init(value: Bool, enabled: Bool, onChange: @escaping (Bool) -> Void) {
     self.value = value
     self.enabled = enabled
     self.onChange = onChange
+  }
+
+  func handleChange(_ newValue: Bool) {
+    if suppressChangeCallback {
+      return
+    }
+    onChange(newValue)
+  }
+
+  func setValueFromDart(_ newValue: Bool) {
+    suppressChangeCallback = true
+    value = newValue
+    suppressChangeCallback = false
   }
 }

@@ -51,7 +51,7 @@ class CupertinoSwitchNSView: NSView {
       switch call.method {
       case "setValue":
         if let args = call.arguments as? [String: Any], let value = (args["value"] as? NSNumber)?.boolValue {
-          model.value = value
+          model.setValueFromDart(value)
           result(nil)
         } else { result(FlutterError(code: "bad_args", message: "Missing value", details: nil)) }
       case "setEnabled":
